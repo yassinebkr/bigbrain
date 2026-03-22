@@ -53,11 +53,9 @@ class BaseBrain(ABC):
     """
 
     def __init__(self, name: str, bus: MessageBus):
-        # TODO: Store these:
-        #   self.name    — brain's identity on the bus (e.g. "python_brain")
-        #   self.bus     — reference to the MessageBus instance
-        #   self._running — bool, whether this brain is active
-        pass
+        self.name = name
+        self.bus = bus
+        self._running = bool
 
     async def start(self) -> None:
         """
