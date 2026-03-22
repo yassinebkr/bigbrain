@@ -119,8 +119,28 @@ class MessageBus:
         3. ALSO always call handlers registered for "*" (wildcard subscribers)
         4. Wrap each handler call in try/except — one bad handler shouldn't kill the bus
         """
-        # TODO: Implement routing logic
-        pass
+
+        if msg.target == "*" :
+            for handler_list in self._handlers.values():
+                for handler in handler_list:
+                    try:
+                        await handler(msg)
+                    except ValueError:
+                        pass
+        else:
+            for handler in self._handlers[msg.target]:
+                try:
+                    await handler(msg)
+                except ValueError:
+                    pass
+            for handler in self._handlers["*"]:
+                try:
+                    await handler(msg)
+                except ValueError:
+                    pass
+
+        
+
 
     async def start(self) -> None:
         """
