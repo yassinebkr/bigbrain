@@ -86,15 +86,11 @@ class MessageBus:
         
         Multiple handlers per target are allowed.
         """
-
-        # TODO: Add handler to self._handlers[target]
-        pass
+        self._handlers[target].append(handler)
 
     def unsubscribe(self, target: str, handler: Handler) -> None:
         """Remove a previously registered handler."""
-        # TODO: Remove handler from self._handlers[target]
-        # Don't crash if handler wasn't registered
-        pass
+        self._handlers[target].remove(handler)
 
     async def send(self, msg: BusMessage) -> None:
         """
