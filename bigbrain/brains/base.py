@@ -55,7 +55,7 @@ class BaseBrain(ABC):
     def __init__(self, name: str, bus: MessageBus):
         self.name = name
         self.bus = bus
-        self._running = bool
+        self._running = False
 
     async def start(self) -> None:
         """
@@ -66,8 +66,11 @@ class BaseBrain(ABC):
         2. Subscribe self._on_message to the bus with target = self.name
         3. Log that the brain started
         """
-        # TODO: Implement
-        pass
+        self._running = True
+
+        target = self.name
+        self.bus.subscribe(self.name, self._on_message)
+        log.info(f"{self.name} started")
 
     async def stop(self) -> None:
         """
@@ -78,8 +81,10 @@ class BaseBrain(ABC):
         2. Unsubscribe self._on_message from the bus
         3. Log that the brain stopped
         """
-        # TODO: Implement
-        pass
+        self._running = False
+
+        self.bus.unsubscribe(self.name, self._on_message)
+        log.info(f"{self.name} stopped")
 
     async def _on_message(self, msg: BusMessage) -> None:
         """
