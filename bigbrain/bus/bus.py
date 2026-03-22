@@ -79,6 +79,14 @@ class MessageBus:
         
         Multiple handlers per target are allowed.
         """
+        self.handlers = defaultdict(list)
+        self._queue = asyncio.Queue()
+        if log_dir:
+            self._logger = BusLogger(log_dir)
+        else:
+           self._logger = None
+        self._running = False
+        self._task = None
         # TODO: Add handler to self._handlers[target]
         pass
 
