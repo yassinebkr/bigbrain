@@ -53,10 +53,8 @@ class PythonBrain(BaseBrain):
     """
 
     def __init__(self, name: str, bus: MessageBus, timeout: int = 10):
-        # TODO:
-        # 1. Call the parent __init__ (super().__init__) with name and bus
-        # 2. Store the timeout value as self.timeout
-        pass
+        super().__init__(name, bus)
+        self.timeout = timeout
 
     async def handle_message(self, msg: BusMessage) -> None:
         """
@@ -71,8 +69,14 @@ class PythonBrain(BaseBrain):
         5. Send the result back with self.send_result()
            - payload: {"stdout": ..., "stderr": ..., "returncode": ...}
         """
-        # TODO: Implement
-        pass
+        code = msg.payload.get("code")
+        if not code:
+           await self.send_result(msg, {"stdout": "", "stderr": "No code provided", "returncode": 1})
+           return
+        await self.send_event("brain.started", {})
+        stdout, stderr, returncode = await self._run_code(code)
+        await self.send_event("brain.complete", {})
+        await self.send_result(msg, {"stdout": stdout, "stderr": stderr, "returncode": returncode})
 
     async def _run_code(self, code: str) -> tuple[str, str, int]:
         """
@@ -91,5 +95,17 @@ class PythonBrain(BaseBrain):
            - Decode stdout and stderr from bytes to str
            - Return (stdout, stderr, process.returncode)
         """
-        # TODO: Implement
-        pass
+        process = await asyncio.create_subprocess_exec(
+            "python3", "-c", code,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+           stdout_bytes, stderr_bytes = await asyncio.wait_for(
+               process.communicate(), timeout=self.timeout
+               )
+        except asyncio.TimeoutError:
+            process.kill()
+            return ("", f"Timeout: execution exceeded {self.timeout}s", 1)
+        
+
