@@ -63,20 +63,17 @@ class Orchestrator:
     """
 
     def __init__(self, bus: MessageBus):
-        # TODO: Store these:
-        #   self.bus        — the MessageBus instance
-        #   self._brains    — set() of registered brain names
-        #   self._pending   — dict mapping task_id → {"msg": original_msg, "callback": callback_fn}
-        #   self._running   — bool
-        pass
+        self.bus = bus
+        self._brains = set()
+        self._pending = {}
+        self._running = False
 
     def register_brain(self, name: str) -> None:
         """
         Register a brain name so the orchestrator knows it exists.
         Just add the name to self._brains set.
         """
-        # TODO: Implement (one line)
-        pass
+        self._brains.add(name)
 
     async def start(self) -> None:
         """
@@ -87,8 +84,12 @@ class Orchestrator:
         2. Subscribe self._on_message to the bus with target "orchestrator"
         3. Log that the orchestrator started
         """
-        # TODO: Implement
-        pass
+        self._running = True
+        self._running = False
+        self.bus.subscribe("orchestrator", self._on_message)
+        log.info("orchestrator started")
+
+
 
     async def stop(self) -> None:
         """
@@ -99,8 +100,9 @@ class Orchestrator:
         2. Unsubscribe self._on_message from the bus
         3. Log that the orchestrator stopped
         """
-        # TODO: Implement
-        pass
+        self._running = False
+        self.bus.unsubscribe("orchestrator", self._on_message)
+        log.info("orchestrator stopped")
 
     async def _on_message(self, msg: BusMessage) -> None:
         """
@@ -114,8 +116,15 @@ class Orchestrator:
 
         Wrap in try/except Exception to log errors without crashing.
         """
-        # TODO: Implement
-        pass
+        if not self._running:
+            return
+        try:
+            if msg.type is MessageType.TASK:
+                await self._handle_task(msg)
+            if msg.type is MessageType.RESULT:
+                await self._handle_result(msg)
+        except Exception as e:
+            await self.send_event("brain.error", {"error": str(e)})  
 
     async def submit_task(
         self,
