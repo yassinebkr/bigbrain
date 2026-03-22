@@ -68,7 +68,14 @@ class MessageBus:
         #
         # self._running   — bool flag for the dispatch loop
         # self._task      — reference to the asyncio dispatch task
-        pass
+        self.handlers = defaultdict(list)
+        self._queue = asyncio.Queue()
+        if log_dir:
+            self._logger = BusLogger(log_dir)
+        else:
+           self._logger = None
+        self._running = False
+        self._task = None
 
     def subscribe(self, target: str, handler: Handler) -> None:
         """
@@ -79,14 +86,7 @@ class MessageBus:
         
         Multiple handlers per target are allowed.
         """
-        self.handlers = defaultdict(list)
-        self._queue = asyncio.Queue()
-        if log_dir:
-            self._logger = BusLogger(log_dir)
-        else:
-           self._logger = None
-        self._running = False
-        self._task = None
+
         # TODO: Add handler to self._handlers[target]
         pass
 
