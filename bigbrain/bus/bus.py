@@ -172,3 +172,12 @@ class MessageBus:
         """
         self._running = False
 
+        await self._queue.put(None)
+        try:
+            await asyncio.wait_for(self._task, timeout=5)
+        except asyncio.TimeoutError:
+            pass
+        if self._logger:
+            self._logger.close()
+
+
