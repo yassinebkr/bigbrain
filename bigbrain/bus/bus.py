@@ -151,8 +151,15 @@ class MessageBus:
         2. while self._running: await msg from queue → dispatch(msg)
         3. Store the task in self._task so stop() can cancel it
         """
-        # TODO: Create asyncio task running the dispatch loop
-        pass
+        self._running = True
+
+        async def _run():
+            while self._running:
+                msg = await self._queue.get()
+                if msg is None:
+                    break
+                await self._dispatch(msg)
+        self._task = asyncio.create_task(_run())
 
     async def stop(self) -> None:
         """
@@ -163,5 +170,5 @@ class MessageBus:
         3. await self._task (with a timeout)
         4. Close the logger
         """
-        # TODO: Implement graceful shutdown
-        pass
+        self._running = False
+
