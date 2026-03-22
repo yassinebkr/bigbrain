@@ -107,5 +107,6 @@ class PythonBrain(BaseBrain):
         except asyncio.TimeoutError:
             process.kill()
             return ("", f"Timeout: execution exceeded {self.timeout}s", 1)
+        return (stdout_bytes.decode(), stderr_bytes.decode(), process.returncode)
         
 
