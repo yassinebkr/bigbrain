@@ -100,10 +100,12 @@ class BaseBrain(ABC):
         """
         if not self._running:
             return
+        if msg.type != MessageType.TASK:
+            return
         try:
             await self.handle_message(msg)
         except Exception as e:
-          await self.send_event("brain.error", {"error": str(e)})  
+            await self.send_event("brain.error", {"error": str(e)})  
 
     @abstractmethod
     async def handle_message(self, msg: BusMessage) -> None:
