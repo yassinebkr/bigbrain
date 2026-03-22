@@ -68,7 +68,7 @@ class MessageBus:
         #
         # self._running   — bool flag for the dispatch loop
         # self._task      — reference to the asyncio dispatch task
-        self.handlers = defaultdict(list)
+        self._handlers = defaultdict(list)
         self._queue = asyncio.Queue()
         if log_dir:
             self._logger = BusLogger(log_dir)
