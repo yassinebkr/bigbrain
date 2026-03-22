@@ -125,18 +125,18 @@ class MessageBus:
                 for handler in handler_list:
                     try:
                         await handler(msg)
-                    except ValueError:
+                    except:
                         pass
         else:
             for handler in self._handlers[msg.target]:
                 try:
                     await handler(msg)
-                except ValueError:
+                except:
                     pass
             for handler in self._handlers["*"]:
                 try:
                     await handler(msg)
-                except ValueError:
+                except:
                     pass
 
         
