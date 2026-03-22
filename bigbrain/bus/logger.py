@@ -60,14 +60,12 @@ class BusLogger:
         4. Write line + "\n" to file
         5. Flush (we want crash-safe logs)
         """
-        date_str = datetime.now(datetime.timezone.utc).strtime("%Y-%m-%d")
-        if date_str != self.current_date:
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if date_str != self._current_date:
             self._rotate(date_str)
         line = json.dumps(msg.model_dump())
         self._file.write(line + "\n")
         self._file.flush()
-        # TODO: Implement
-        pass
 
     def _rotate(self, date_str: str) -> None:
         """
