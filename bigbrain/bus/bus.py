@@ -90,7 +90,10 @@ class MessageBus:
 
     def unsubscribe(self, target: str, handler: Handler) -> None:
         """Remove a previously registered handler."""
-        self._handlers[target].remove(handler)
+        try:
+            self._handlers[target].remove(handler)
+        except:
+            pass
 
     async def send(self, msg: BusMessage) -> None:
         """
