@@ -92,7 +92,7 @@ class MessageBus:
         """Remove a previously registered handler."""
         try:
             self._handlers[target].remove(handler)
-        except:
+        except ValueError:
             pass
 
     async def send(self, msg: BusMessage) -> None:
@@ -105,8 +105,9 @@ class MessageBus:
         
         This returns immediately — dispatch happens in the background.
         """
-        # TODO: Log with self._logger, then self._queue.put(msg)
-        pass
+        if self._logger:
+            self._logger.log(msg)
+        self._queue(msg)
 
     async def _dispatch(self, msg: BusMessage) -> None:
         """
