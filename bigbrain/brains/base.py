@@ -98,8 +98,12 @@ class BaseBrain(ABC):
            - Send an error event back via send_event() with type "brain.error"
              and the error details in the payload
         """
-        # TODO: Implement
-        pass
+        if not self._running:
+            return
+        try:
+            await self.handle_message(msg)
+        except Exception as e:
+          await self.send_event("brain.error", {"error": str(e)})  
 
     @abstractmethod
     async def handle_message(self, msg: BusMessage) -> None:
@@ -122,8 +126,14 @@ class BaseBrain(ABC):
         - payload = the result data
         - reply_to = original_msg.id (links it to the original)
         """
-        # TODO: Build a BusMessage and await self.bus.send(msg)
-        pass
+        msg = BusMessage(
+            type=MessageType.RESULT,
+            source=self.name,              # who's sending: this brain
+            target=original_msg.source,    # who to reply to: whoever sent the task
+            payload=payload,               # the result data
+            reply_to=original_msg.id,      # link back to the original message
+        )
+        await self.bus.send(msg)
 
     async def send_event(self, event_type: str, payload: dict, target: str = "*") -> None:
         """
@@ -136,5 +146,10 @@ class BaseBrain(ABC):
         - payload = {"event": event_type, **payload}
           (merge event_type into the payload dict so receivers know what kind of event)
         """
-        # TODO: Build a BusMessage and await self.bus.send(msg)
-        pass
+        msg = BusMessage(
+            type=MessageType.EVENT,
+            source=self.name,                          # who's sending: this brain
+            target=target,                             # default "*" = everyone
+            payload={"event": event_type, **payload},  # merge event_type into payload
+        )
+        await self.bus.send(msg)
