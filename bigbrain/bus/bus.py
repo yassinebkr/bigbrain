@@ -107,7 +107,7 @@ class MessageBus:
         """
         if self._logger:
             self._logger.log(msg)
-        self._queue(msg)
+        await self._queue.put(msg)
 
     async def _dispatch(self, msg: BusMessage) -> None:
         """
