@@ -68,7 +68,6 @@ class BaseBrain(ABC):
         """
         self._running = True
 
-        target = self.name
         self.bus.subscribe(self.name, self._on_message)
         log.info(f"{self.name} started")
 
