@@ -43,6 +43,10 @@ class BusLogger:
         # self._log_dir   — Path object, create if doesn't exist
         # self._current_date — str like "2026-03-16", tracks which file is open
         # self._file      — open file handle (or None)
+        self._log_dir = Path(log_dir)
+        self._log_dir.mkdir(parents=True, exist_ok=True)
+        self._current_date = None
+        self._file = None
         pass
 
     def log(self, msg: BusMessage) -> None:
@@ -56,9 +60,12 @@ class BusLogger:
         4. Write line + "\n" to file
         5. Flush (we want crash-safe logs)
         """
-        date_str = datetime.now(datetime.timezone.utc)
-        if date_str != last_date :
-            
+        date_str = datetime.now(datetime.timezone.utc).strtime("%Y-%m-%d")
+        if date_str != self.current_date:
+            self._rotate(date_str)
+        line = json.dumps(msg.model_dump())
+        self._file.write(line + "\n")
+        self._file.flush()
         # TODO: Implement
         pass
 
