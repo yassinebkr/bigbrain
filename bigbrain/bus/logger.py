@@ -74,10 +74,16 @@ class BusLogger:
         File path: {self._log_dir}/{date_str}.jsonl
         Open in append mode ("a").
         """
+        if date_str == self._current_date:
+            self._file.flush()
+            self.close()
+        
         # TODO: Implement
         pass
 
     def close(self) -> None:
         """Flush and close the current file handle."""
+        self._file.flush()
+
         # TODO: Implement
         pass
