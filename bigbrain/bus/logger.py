@@ -56,6 +56,9 @@ class BusLogger:
         4. Write line + "\n" to file
         5. Flush (we want crash-safe logs)
         """
+        date_str = datetime.now(datetime.timezone.utc)
+        if date_str != last_date :
+            
         # TODO: Implement
         pass
 
