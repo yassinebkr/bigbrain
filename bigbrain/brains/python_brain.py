@@ -25,6 +25,8 @@ You implement:
 
 from __future__ import annotations
 
+import sys
+
 import asyncio
 import logging
 
@@ -96,7 +98,7 @@ class PythonBrain(BaseBrain):
            - Return (stdout, stderr, process.returncode)
         """
         process = await asyncio.create_subprocess_exec(
-            "python3", "-c", code,
+            sys.executable, "-c", code,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
