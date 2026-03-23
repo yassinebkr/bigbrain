@@ -76,6 +76,7 @@ class MessageBus:
            self._logger = None
         self._running = False
         self._task = None
+        self._dispatch_tasks: set = set()  # tracks in-flight dispatch coroutines
 
     def subscribe(self, target: str, handler: Handler) -> None:
         """
@@ -114,32 +115,26 @@ class MessageBus:
         Route a single message to the right handlers.
         
         Routing rules:
-        1. If msg.target == "*" → call ALL handlers in self._handlers (every key)
-        2. Otherwise → call handlers registered for msg.target
-        3. ALSO always call handlers registered for "*" (wildcard subscribers)
+        1. Snapshot handler lists (prevents mutation during iteration)
+        2. If msg.target == "*" → call ALL handlers in self._handlers (every key)
+        3. Otherwise → call handlers registered for msg.target + wildcard "*"
         4. Wrap each handler call in try/except — one bad handler shouldn't kill the bus
         """
+        handlers: list[Handler] = []
 
-        if msg.target == "*" :
-            for handler_list in self._handlers.values():
-                for handler in handler_list:
-                    try:
-                        await handler(msg)
-                    except Exception:
-                        pass
+        if msg.target == "*":
+            snapshot = dict(self._handlers)
+            for handler_list in snapshot.values():
+                handlers.extend(list(handler_list))
         else:
-            for handler in self._handlers[msg.target]:
-                try:
-                    await handler(msg)
-                except Exception:
-                    pass
-            for handler in self._handlers["*"]:
-                try:
-                    await handler(msg)
-                except Exception:
-                    pass
+            handlers.extend(list(self._handlers.get(msg.target, [])))
+            handlers.extend(list(self._handlers.get("*", [])))
 
-        
+        for handler in handlers:
+            try:
+                await handler(msg)
+            except Exception:
+                pass
 
 
     async def start(self) -> None:
@@ -147,10 +142,16 @@ class MessageBus:
         Start the background dispatch loop.
         
         The loop:
-        1. self._running = True
-        2. while self._running: await msg from queue → dispatch(msg)
-        3. Store the task in self._task so stop() can cancel it
+        1. If already running, return (prevent orphaned dispatch tasks)
+        2. self._running = True
+        3. while self._running: await msg from queue → create_task(dispatch(msg))
+        4. Store the task in self._task so stop() can cancel it
+        
+        Dispatches run concurrently — a slow handler on target A
+        won't block messages for target B.
         """
+        if self._running:
+            return
         self._running = True
 
         async def _run():
@@ -158,7 +159,10 @@ class MessageBus:
                 msg = await self._queue.get()
                 if msg is None:
                     break
-                await self._dispatch(msg)
+                task = asyncio.create_task(self._dispatch(msg))
+                self._dispatch_tasks.add(task)
+                task.add_done_callback(self._dispatch_tasks.discard)
+
         self._task = asyncio.create_task(_run())
 
     async def stop(self) -> None:
@@ -168,15 +172,29 @@ class MessageBus:
         1. self._running = False
         2. Put a None sentinel in the queue to unblock the loop
         3. await self._task (with a timeout)
-        4. Close the logger
+        4. Wait for in-flight dispatch tasks to finish
+        5. Close the logger
         """
         self._running = False
 
-        await self._queue.put(None)
-        try:
-            await asyncio.wait_for(self._task, timeout=5)
-        except asyncio.TimeoutError:
-            pass
+        if self._task is not None:
+            await self._queue.put(None)
+            try:
+                await asyncio.wait_for(self._task, timeout=5)
+            except asyncio.TimeoutError:
+                pass
+
+        # Wait for any in-flight concurrent dispatches
+        if self._dispatch_tasks:
+            pending = set(self._dispatch_tasks)
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*pending, return_exceptions=True),
+                    timeout=5,
+                )
+            except asyncio.TimeoutError:
+                pass
+
         if self._logger:
             self._logger.close()
 

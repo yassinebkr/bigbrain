@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Callable, Awaitable
 
 from bigbrain.bus import MessageBus, BusMessage, MessageType
@@ -62,11 +63,13 @@ class Orchestrator:
         await orch.submit_task("python_brain", {"code": "print(42)"}, callback=on_done)
     """
 
-    def __init__(self, bus: MessageBus):
+    def __init__(self, bus: MessageBus, task_timeout: float = 60.0):
         self.bus = bus
-        self._brains = set()
-        self._pending = {}
+        self._brains: set[str] = set()
+        self._pending: dict = {}
         self._running = False
+        self._task_timeout = task_timeout
+        self._timeout_task: asyncio.Task | None = None
 
     def register_brain(self, name: str) -> None:
         """
@@ -80,16 +83,18 @@ class Orchestrator:
         Start the orchestrator.
 
         Steps:
-        1. Set self._running = True
-        2. Subscribe self._on_message to the bus with target "orchestrator"
-        3. Log that the orchestrator started
+        1. If already running, return (prevent duplicate subscriptions)
+        2. Set self._running = True
+        3. Subscribe self._on_message to the bus with target "orchestrator"
+        4. Start the timeout cleanup loop
+        5. Log that the orchestrator started
         """
+        if self._running:
+            return
         self._running = True
-        self._running = False
         self.bus.subscribe("orchestrator", self._on_message)
+        self._timeout_task = asyncio.create_task(self._timeout_loop())
         log.info("orchestrator started")
-
-
 
     async def stop(self) -> None:
         """
@@ -98,11 +103,64 @@ class Orchestrator:
         Steps:
         1. Set self._running = False
         2. Unsubscribe self._on_message from the bus
-        3. Log that the orchestrator stopped
+        3. Cancel and await the timeout loop task
+        4. Log that the orchestrator stopped
         """
         self._running = False
         self.bus.unsubscribe("orchestrator", self._on_message)
+        if self._timeout_task is not None:
+            self._timeout_task.cancel()
+            try:
+                await self._timeout_task
+            except asyncio.CancelledError:
+                pass
+            self._timeout_task = None
         log.info("orchestrator stopped")
+
+    async def _timeout_loop(self) -> None:
+        """
+        Background loop that checks for timed-out tasks every second.
+        
+        When a task exceeds task_timeout:
+        1. Remove it from _pending
+        2. Send a task.timeout event on the bus
+        3. Call the task's callback (if any) with a timeout error result
+        """
+        while self._running:
+            await asyncio.sleep(1.0)
+            now = time.monotonic()
+            expired = [
+                task_id
+                for task_id, entry in self._pending.items()
+                if now - entry.get("submitted_at", now) > self._task_timeout
+            ]
+            for task_id in expired:
+                entry = self._pending.pop(task_id, None)
+                if not entry:
+                    continue
+                log.warning(f"Task {task_id} timed out after {self._task_timeout}s")
+                # Notify the bus
+                timeout_event = BusMessage(
+                    type=MessageType.EVENT,
+                    source="orchestrator",
+                    target="*",
+                    payload={"event": "task.timeout", "task_id": task_id},
+                )
+                await self.bus.send(timeout_event)
+                # Notify the callback
+                callback = entry.get("callback")
+                if callback:
+                    try:
+                        timeout_result = BusMessage(
+                            type=MessageType.RESULT,
+                            source="orchestrator",
+                            target="orchestrator",
+                            payload={"error": "task_timeout", "task_id": task_id},
+                            reply_to=task_id,
+                        )
+                        await callback(timeout_result)
+                    except Exception as e:
+                        log.error(f"Timeout callback error for {task_id}: {e}")
 
     async def _on_message(self, msg: BusMessage) -> None:
         """
@@ -124,7 +182,15 @@ class Orchestrator:
             if msg.type is MessageType.RESULT:
                 await self._handle_result(msg)
         except Exception as e:
-            await self.send_event("brain.error", {"error": str(e)})  
+            log.error(f"Error handling message: {e}")
+            # Send error event to the bus
+            error_msg = BusMessage(
+                type=MessageType.EVENT,
+                source="orchestrator",
+                target="*",
+                payload={"event": "orchestrator.error", "error": str(e)},
+            )
+            await self.bus.send(error_msg)  
 
     async def submit_task(
         self,
@@ -146,8 +212,23 @@ class Orchestrator:
         4. Send the message on the bus
         5. Return msg.id
         """
-        # TODO: Implement
-        pass
+        if brain not in self._brains:
+            raise ValueError(f"Unknown brain: {brain}")
+            
+        msg = BusMessage(
+            type=MessageType.TASK,
+            source="orchestrator",
+            target=brain,
+            payload=payload,
+        )
+        
+        self._pending[msg.id] = {
+            "msg": msg,
+            "callback": callback,
+            "submitted_at": time.monotonic(),
+        }
+        await self.bus.send(msg)
+        return msg.id
 
     async def _handle_task(self, msg: BusMessage) -> None:
         """
@@ -166,8 +247,29 @@ class Orchestrator:
         4. Store in self._pending: self._pending[new_msg.id] = {"msg": msg, "callback": None}
         5. Send it on the bus
         """
-        # TODO: Implement
-        pass
+        brain = msg.payload.get("brain")
+        if not brain:
+            log.warning(f"Task message missing 'brain' key: {msg.id}")
+            return
+            
+        if brain not in self._brains:
+            log.warning(f"Unknown brain '{brain}' in task {msg.id}")
+            return
+            
+        new_msg = BusMessage(
+            type=MessageType.TASK,
+            source="orchestrator",
+            target=brain,
+            payload=msg.payload,
+            reply_to=msg.id,
+        )
+        
+        self._pending[new_msg.id] = {
+            "msg": msg,
+            "callback": None,
+            "submitted_at": time.monotonic(),
+        }
+        await self.bus.send(new_msg)
 
     async def _handle_result(self, msg: BusMessage) -> None:
         """
@@ -179,10 +281,22 @@ class Orchestrator:
         2. Remove it from self._pending (task is done)
         3. If the pending entry has a callback, await it with the result message
         """
-        # TODO: Implement
-        pass
+        if not msg.reply_to:
+            log.debug(f"Result message {msg.id} has no reply_to")
+            return
+            
+        pending_entry = self._pending.pop(msg.reply_to, None)
+        if not pending_entry:
+            log.debug(f"No pending task found for result {msg.id} (reply_to: {msg.reply_to})")
+            return
+            
+        callback = pending_entry.get("callback")
+        if callback:
+            try:
+                await callback(msg)
+            except Exception as e:
+                log.error(f"Callback error for task {msg.reply_to}: {e}")
 
     def get_pending_count(self) -> int:
         """Return the number of tasks still waiting for results."""
-        # TODO: Implement (one line)
-        pass
+        return len(self._pending)

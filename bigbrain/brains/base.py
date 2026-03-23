@@ -62,12 +62,14 @@ class BaseBrain(ABC):
         Start the brain: subscribe to the bus for messages targeting self.name.
 
         Steps:
-        1. Set self._running = True
-        2. Subscribe self._on_message to the bus with target = self.name
-        3. Log that the brain started
+        1. If already running, return (prevent duplicate subscriptions)
+        2. Set self._running = True
+        3. Subscribe self._on_message to the bus with target = self.name
+        4. Log that the brain started
         """
+        if self._running:
+            return
         self._running = True
-
         self.bus.subscribe(self.name, self._on_message)
         log.info(f"{self.name} started")
 
