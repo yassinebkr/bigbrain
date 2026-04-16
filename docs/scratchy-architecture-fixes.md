@@ -38,7 +38,16 @@ This only moves the bubble to the end of the **DOM**, but:
 - Multi-device sync gets conflicting orders
 - History reload restores wrong order
 
-### Permanent Solution
+### Permanent Solution ✅ IMPLEMENTED (2025-04-16)
+
+**Status**: Committed to Scratchy repo (`40828f1`)
+
+**Changes**:
+- `_startToolIdleDetection()`: Changed from `setTimeout` (noop) to `setInterval` (1s checks)
+- Shows "Processing..." after 3s of no deltas, "Still working..." after 10s
+- 60s safety timeout to force-end stuck tools
+- Tool start clears `_showedProcessing` so actual tool name is shown
+- Delta arrival clears `_showedProcessing` for smooth transition to streaming
 
 #### Phase A: Server-Side Sequence Numbers (Immediate)
 The gateway already has `frame.seq` in the WebSocket envelope. Use it:
@@ -77,7 +86,7 @@ if (msg.seq > this._lastContiguousSeq + 1) {
 
 ---
 
-## Issue 2: Tool Call "Stalling" Without Feedback
+## Issue 2: Tool Call "Stalling" Without Feedback ✅ FIXED
 
 ### Root Cause
 `_startToolIdleDetection()` was intentionally disabled:
