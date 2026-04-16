@@ -297,12 +297,12 @@ connection.ws.send(JSON.stringify({
 
 ## Implementation Priority
 
-| Issue | Quick Fix | Proper Fix | Risk | Effort |
-|-------|-----------|------------|------|--------|
-| Message ordering | Use `appendChild` in finalize | Server-side seq | Low | 2d |
-| Tool stall | Re-enable idle detection | Tool progress events | Low | 1d |
-| History loss | Increase cache to 200 | Server pagination | Medium | 3d |
-| Canvas loss | Load from localStorage | Server canvas snapshot | Medium | 2d |
+| Issue | Status | Quick Fix | Proper Fix | Risk | Effort |
+|-------|--------|-----------|------------|------|--------|
+| Message ordering | ✅ **IMPLEMENTED** (2025-04-16) | Use `appendChild` in finalize | Server-side seq | Low | 2d |
+| Tool stall | ✅ **IMPLEMENTED** (2025-04-16) | Re-enable idle detection | Tool progress events | Low | 1d |
+| History loss | ⏳ **PENDING** | Increase cache to 200 | Server pagination | Medium | 3d |
+| Canvas loss | ⏳ **PENDING** | Load from localStorage | Server canvas snapshot | Medium | 2d |
 
 ---
 
