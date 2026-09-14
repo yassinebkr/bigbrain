@@ -59,13 +59,10 @@ BigBrain provides a morphable web interface that adapts to the current workspace
 
 ## Supported Models
 
-BigBrain provides extensive support for cutting-edge models, seamlessly configurable through the admin dashboard and gateway configuration:
+BigBrain is fully integrated with **OpenRouter**, allowing you to use any cutting-edge LLM supported by their platform. You can configure which models handle different tasks by modifying your `.env` file:
 
-- **GPT 5.6 Luna**: Excels at labeling requests and crafting targeted, granular tasks.
-- **GPT 5.6 Sol & GPT 6 Astra**: High-performance models for deep reasoning and complex DAG execution.
-- **Kimi K3 & Claude**: Advanced coding capabilities and extended context handling.
-
-*Note: The admin dashboard correctly applies model overrides to active sessions in real-time, matching sessions by user ID and applying updates instantly.*
+- **Front Brain (Intent & Chat)**: Handles fast, low-latency intent parsing and conversational responses.
+- **Python Brain (Worker)**: Handles complex reasoning, coding, and multi-step execution.
 
 ## Getting Started
 
@@ -77,23 +74,32 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+### Configuration
+
+Copy the `.env.example` to `.env` and add your OpenRouter API key along with your preferred model identifiers:
+
+```bash
+cp .env.example .env
+```
+
+**`.env` Configuration:**
+```env
+OPENROUTER_API_KEY=sk-or-your-key-here
+
+# For the front brain (e.g. OpenAI GPT-4o Mini or DeepSeek Chat):
+BIGBRAIN_MODEL_FRONT="openai/gpt-4o-mini"
+# For the python worker (e.g. OpenAI GPT-4o or Anthropic Claude 3.5 Sonnet):
+BIGBRAIN_MODEL_WORKER="openai/gpt-4o"
+```
+
+### Running the Server
+
+```bash
+python start_server.py
+```
+
 ### Running Tests
 
 ```bash
 pytest tests/ -v
-```
-
-## Configuration
-
-Gateway config supports explicit model aliases for smooth transitions:
-
-```json
-"agents": {
-  "defaults": {
-    "models": {
-      "gpt-luna": "gpt-5.6-luna",
-      "kimi-k3": "kimi-coding/k3"
-    }
-  }
-}
 ```
