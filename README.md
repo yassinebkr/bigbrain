@@ -1,39 +1,64 @@
-# BigBrain v0
+# BigBrain
 
-Multi-brain AI agent system. CAN bus–inspired message architecture, specialized brains, adversarial verification.
+**BigBrain** is a professional, multi-brain AI agent system featuring a CAN bus–inspired message architecture, specialized brains, and rigorous adversarial verification. Designed for scalability and high-confidence AI operations, BigBrain empowers developers to orchestrate complex tasks efficiently.
 
-## What's New in v0 (April 2025)
+![BigBrain Admin Dashboard](assets/admin_dashboard.jpg)
 
-### Model Support: Kimi K2.6
-- **Kimi K2.6 Code Preview** now supported as primary model
-- 1M token context window (vs K2.5's 256k)
-- Improved code reasoning and long-context retention
-- Model aliasing: `kimi-k2p6` → `kimi-coding/k2.6-code-preview`
+## Architecture
 
-### Admin Dashboard Model Switching (Fixed)
-- Fixed `_saveModel()` to correctly resolve active sessions
-- Now finds most recently updated session matching user ID
-- Supports multiple session key formats (`main:webchat:*`, `agent:main:webchat:*`)
-- Real-time model override without restart
+BigBrain uses a highly robust architecture separating intent, planning, execution, and verification.
 
-### Architecture Enhancements
-- **Execution Modes**: SIMPLE | TESTED | DAG | AUTO
-  - `SIMPLE`: Quick scripts, no tests
-  - `TESTED`: Self-verified with pytest
-  - `DAG`: Full multi-brain adversarial pipeline
-  - `AUTO`: LLM classification with fallback
-- **TestWriter Brain**: Adversarial test generation separated from implementation
-- **AST-based attribution**: 3-tier failing file identification
-- **Diff history**: Previous attempts tracked in fix prompts
+```text
++----------------+      +----------------+      +-------------------+
+|                |      |                |      |                   |
+|  Front Brain   |----->|  Orchestrator  |----->|  Sub-brain Pool   |
+|                |      |  (Event Bus)   |      |  (Python/TS/etc)  |
+|                |      |                |      |                   |
++----------------+      +--------+-------+      +-------------------+
+                                 |
+                        +--------+--------+
+                        |                 |
+                        v                 v
+                 +------------+     +-----------+
+                 |            |     |           |
+                 | TestWriter |     | Architect |
+                 |            |     |           |
+                 +------------+     +-----------+
+```
 
-### Pipeline Improvements
-- Skeleton-first code generation (headers → stubs → implementation)
-- Dependency graph with Kahn's topological sort
-- Cross-file AST lint before test execution
-- Feedback loop reads stdout (not just stderr)
-- 3-layer subprocess defense (knowledge + skeleton + test-rewrite)
+### Verification Hierarchy
 
-## Setup
+1. **Deterministic Tools (V4/V1)**: Ground truth validation
+2. **LLM Opinions (V3)**: Advisory guidance
+3. **Human Intervention (V5)**: Tiebreaker
+
+See `docs/architecture.md` for full specification.
+
+## Core Capabilities
+
+- **Execution Modes**:
+  - `SIMPLE`: Quick scripts, no tests.
+  - `TESTED`: Self-verified with pytest.
+  - `DAG`: Full multi-brain adversarial pipeline.
+  - `AUTO`: LLM classification with fallback.
+- **TestWriter Brain**: Adversarial test generation isolated from implementation logic.
+- **AST-Based Attribution**: 3-tier failing file identification.
+- **Diff History**: Previous attempts are tracked in fix prompts.
+- **Robust Pipeline**: Skeleton-first code generation, dependency graphs via Kahn's topological sort, and cross-file AST linting.
+
+## Supported Models
+
+BigBrain provides extensive support for cutting-edge models, seamlessly configurable through the admin dashboard and gateway configuration:
+
+- **GPT 5.6 Luna**: Excels at labeling requests and crafting targeted, granular tasks.
+- **GPT 5.6 Sol & GPT 6 Astra**: High-performance models for deep reasoning and complex DAG execution.
+- **Kimi K3 & Claude**: Advanced coding capabilities and extended context handling.
+
+*Note: The admin dashboard correctly applies model overrides to active sessions in real-time, matching sessions by user ID and applying updates instantly.*
+
+## Getting Started
+
+### Installation
 
 ```bash
 python3 -m venv .venv
@@ -41,55 +66,23 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## Run tests
+### Running Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-## Architecture
+## Configuration
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
-│ Front Brain │────→│ Orchestrator│────→│ Sub-brain Pool  │
-│  (K2.6)     │     │  (event bus)│     │ (Python/TS/etc) │
-└─────────────┘     └─────────────┘     └─────────────────┘
-                             │
-                    ┌────────┴────────┐
-                    ↓                 ↓
-              ┌──────────┐      ┌──────────┐
-              │TestWriter│      │ Architect│
-              │(adversarial)    │(planner) │
-              └──────────┘      └──────────┘
-```
+Gateway config supports explicit model aliases for smooth transitions:
 
-**Verification Hierarchy (LOCKED)**:
-1. Deterministic tools (V4/V1) = ground truth
-2. LLM opinions = advisory only (V3)
-3. Human = tiebreaker (V5)
-
-See `docs/architecture.md` for full spec.
-
-## Model Configuration
-
-Gateway config supports model aliases:
 ```json
 "agents": {
   "defaults": {
     "models": {
-      "kimi-k2p5": "kimi-coding/k2p5",
-      "kimi-k2p6": "kimi-coding/k2.6-code-preview"
+      "gpt-luna": "gpt-5.6-luna",
+      "kimi-k3": "kimi-coding/k3"
     }
   }
 }
 ```
-
-## Session Model Override
-
-Admin dashboard now correctly applies model overrides to active sessions:
-- Matches sessions by user ID (handles key format variations)
-- Sorts by `updatedAt` to find most recent
-- Applies override to actual active session (not blind key construction)
-
----
-*Last updated: 2025-04-16*
