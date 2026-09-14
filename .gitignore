@@ -10,3 +10,4 @@ venv/
 .env
 logs/
 *.jsonl
+*screenshot*.py

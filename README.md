@@ -48,14 +48,14 @@ See `docs/architecture.md` for full specification.
 
 BigBrain provides a morphable web interface that adapts to the current workspace and focus area.
 
-### Home Workspace
-![BigBrain Home Workspace](assets/frontend_home.png)
+### Home Workspace (Chat Response)
+![BigBrain Home Workspace Response](assets/frontend_home.png)
 
-### Python Workspace
-![BigBrain Python Workspace](assets/frontend_python.png)
+### Python Workspace (Workers Running)
+![BigBrain Python Workspace Running](assets/frontend_python.png)
 
-### Live Usage
-![BigBrain Live Usage](assets/frontend_live_usage.png)
+### Python Workspace (Result Landed)
+![BigBrain Python Workspace Result](assets/frontend_python_result.png)
 
 ## Supported Models
 
