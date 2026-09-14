@@ -2,6 +2,7 @@
 
 **BigBrain** is a professional, multi-brain AI agent system featuring a CAN bus–inspired message architecture, specialized brains, and rigorous adversarial verification. Designed for scalability and high-confidence AI operations, BigBrain empowers developers to orchestrate complex tasks efficiently.
 
+![BigBrain Frontend](assets/frontend_screenshot.png)
 
 ## Architecture
 

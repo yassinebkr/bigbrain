@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08080f">
+  <meta name="color-scheme" content="dark">
+  <title>BigBrain — Morphable UI</title>
+  <link rel="stylesheet" href="/static/style.css?v=20260327b">
+
+  <!-- Prism.js syntax highlighting (Tomorrow Night theme) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+  <!-- Geist font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono&display=swap" rel="stylesheet">
+</head>
+<body data-focus-mode="normal">
+  <div id="app">
+
+    <!-- Top Bar -->
+    <header id="top-bar">
+      <div class="logo">
+        <span>🧠</span>
+        <span>BigBrain</span>
+      </div>
+      <nav id="workspace-selector" aria-label="Workspace switcher">
+        <!-- Populated by app.js -->
+      </nav>
+      <div class="connection-wrap">
+        <span class="connection-label">Bus</span>
+        <div id="connection-status" class="connection-disconnected" role="status" aria-label="Connection status"></div>
+      </div>
+    </header>
+
+    <!-- Panel grid -->
+    <main id="grid-container"></main>
+
+    <!-- Status strip -->
+    <div id="status-strip" role="complementary" aria-label="Status bar"></div>
+
+    <!-- Chat input -->
+    <div id="input-area">
+      <input type="text" id="chat-input" placeholder="Ask BigBrain anything…" autocomplete="off" spellcheck="false" aria-label="Chat message input">
+      <button id="send-btn" aria-label="Send message">Send ⏎</button>
+    </div>
+
+  </div>
+
+  <!-- Prism.js core + Python language -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+
+  <script type="module" src="/static/app.js?v=20260327b"></script>
+</body>
+</html>
