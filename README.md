@@ -2,8 +2,6 @@
 
 **BigBrain** is a professional, multi-brain AI agent system featuring a CAN bus–inspired message architecture, specialized brains, and rigorous adversarial verification. Designed for scalability and high-confidence AI operations, BigBrain empowers developers to orchestrate complex tasks efficiently.
 
-![BigBrain Frontend](assets/frontend_screenshot.png)
-
 ## Architecture
 
 BigBrain uses a highly robust architecture separating intent, planning, execution, and verification.
@@ -45,6 +43,16 @@ See `docs/architecture.md` for full specification.
 - **AST-Based Attribution**: 3-tier failing file identification.
 - **Diff History**: Previous attempts are tracked in fix prompts.
 - **Robust Pipeline**: Skeleton-first code generation, dependency graphs via Kahn's topological sort, and cross-file AST linting.
+
+## User Interface
+
+BigBrain provides a morphable web interface that adapts to the current workspace and focus area.
+
+### Home Workspace
+![BigBrain Home Workspace](assets/frontend_home.png)
+
+### Python Workspace
+![BigBrain Python Workspace](assets/frontend_python.png)
 
 ## Supported Models
 
