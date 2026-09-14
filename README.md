@@ -54,6 +54,9 @@ BigBrain provides a morphable web interface that adapts to the current workspace
 ### Python Workspace
 ![BigBrain Python Workspace](assets/frontend_python.png)
 
+### Live Usage
+![BigBrain Live Usage](assets/frontend_live_usage.png)
+
 ## Supported Models
 
 BigBrain provides extensive support for cutting-edge models, seamlessly configurable through the admin dashboard and gateway configuration:

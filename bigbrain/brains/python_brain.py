@@ -32,31 +32,18 @@ import logging
 
 from bigbrain.bus import MessageBus, BusMessage, MessageType
 from .base import BaseBrain
+from bigbrain.llm.client import LLMClient
+import os
 
 log = logging.getLogger("bigbrain.brain.python")
 
 
 class PythonBrain(BaseBrain):
-    """
-    Brain that executes Python code in an isolated subprocess.
-
-    Usage:
-        brain = PythonBrain("python_brain", bus, timeout=10)
-        await brain.start()
-
-        # Send it a task:
-        await bus.send(BusMessage(
-            type=MessageType.TASK,
-            source="orchestrator",
-            target="python_brain",
-            payload={"code": "print('hello world')"},
-        ))
-        # Brain will send back a RESULT with stdout/stderr/returncode
-    """
-
-    def __init__(self, name: str, bus: MessageBus, timeout: int = 10):
+    def __init__(self, name: str, bus: MessageBus, llm: LLMClient, timeout: int = 10):
         super().__init__(name, bus)
         self.timeout = timeout
+        self.llm = llm
+        self.model = os.environ.get("BIGBRAIN_MODEL_WORKER", "anthropic/claude-3.5-sonnet")
 
     async def handle_message(self, msg: BusMessage) -> None:
         """
@@ -71,14 +58,48 @@ class PythonBrain(BaseBrain):
         5. Send the result back with self.send_result()
            - payload: {"stdout": ..., "stderr": ..., "returncode": ...}
         """
+        request = msg.payload.get("request")
         code = msg.payload.get("code")
-        if not code:
-           await self.send_result(msg, {"stdout": "", "stderr": "No code provided", "returncode": 1})
+        
+        if not code and not request:
+           await self.send_result(msg, {"stdout": "", "stderr": "No code or request provided", "returncode": 1})
            return
+           
         await self.send_event("brain.started", {})
+        
+        if not code and request:
+            # Tell UI we are generating code
+            await self.send_event("progress", {"stage": "generating_code", "progress": 25})
+            try:
+                system_prompt = "You are an expert Python coder. Write python code to fulfill the user's request. Output ONLY valid python code, no markdown formatting or backticks."
+                code = await self.llm.generate(model=self.model, system_prompt=system_prompt, user_prompt=request)
+                
+                # Send the generated code back to UI chat
+                await self.send_event("chat.message", {
+                    "role": "assistant",
+                    "text": f"Generated code:\n```python\n{code}\n```"
+                })
+            except Exception as e:
+                log.error(f"Error generating code: {e}")
+                await self.send_result(msg, {"stdout": "", "stderr": f"Error generating code: {e}", "returncode": 1})
+                return
+
+        await self.send_event("progress", {"stage": "executing", "progress": 60})
         stdout, stderr, returncode = await self._run_code(code)
+        
+        # Send results back to UI chat
+        if returncode == 0:
+            result_msg = f"Output:\n```\n{stdout}\n```"
+        else:
+            result_msg = f"Error:\n```\n{stderr}\n```"
+        
+        await self.send_event("chat.message", {
+            "role": "assistant",
+            "text": result_msg
+        })
+        
         await self.send_event("brain.complete", {})
-        await self.send_result(msg, {"stdout": stdout, "stderr": stderr, "returncode": returncode})
+        await self.send_result(msg, {"stdout": stdout, "stderr": stderr, "returncode": returncode, "generated_code": code})
 
     async def _run_code(self, code: str) -> tuple[str, str, int]:
         """
